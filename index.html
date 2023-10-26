@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+  body {
+    margin: 0;
+    overflow: hidden;
+    background-image: url(bg.avif);
+    background-repeat: no-repeat;
+    background-size: cover;
+  }
+  .enemy {
+    width: 50px;
+    height: 50px;
+    position: absolute;
+  }
+
+  .cursor {
+    display: block;
+    width: 20px;
+    height: 20px;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%);
+    border-radius: 50%;
+    background: transparent;
+    pointer-events: none;
+    z-index: 111;
+    transition: all 0.5s ease-out;
+    animation: move .5s infinite alternate;
+  }
+
+  .cursor img {
+    height: 50px;
+  }
+
+  @keyframes move {
+    from {
+      transform: scale(1);
+    }
+    to {
+      transform: scale(.8);
+    }
+  }
+
+  .flower {
+    width: 30px;
+    height: 30px;
+    position: absolute;
+  }
+
+  /* Start game overlay styles */
+  #startGameOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    z-index: 999;
+  }
+
+  #startGameButton {
+    background: #3498db;
+    color: #fff;
+    padding: 10px 20px;
+    border: none;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+
+<div id="startGameOverlay">
+  <h1>Welcome to the Game</h1>
+  <button id="startGameButton">Start Game</button>
+</div>
+<audio id="bgMusic" src="./sound/bg_score.mp3" autoplay loop></audio>
+
+<div class="cursor">
+  <img src="bee_right.gif" id="img" />
+</div>
+<div class="flowers-container"></div>
+
+<script>
+  const numEnemies = 10;
+  const enemies = [];
+  const repelDistance = 100;
+  const followDistance = 150;
+  const maxX = window.innerWidth;
+  const maxY = window.innerHeight;
+  const maxSpeed = 3;
+  const aggressionFactor = 2;
+  let score = 0;
+  let gameStarted = false;
+
+  const bgMusic = document.getElementById('bgMusic');
+  
+  
+  const startGameOverlay = document.getElementById('startGameOverlay');
+  const startGameButton = document.getElementById('startGameButton');
+
+  startGameButton.addEventListener('click', () => {
+    startGameOverlay.style.display = 'none';
+    startGame();
+    bgMusic.play();
+  });
+
+  function startGame() {
+    gameStarted = true;
+    for (let i = 0; i < numEnemies; i++) {
+      createEnimes();
+    }
+  }
+
+  function createEnimes() {
+    const enemy = document.createElement("img");
+    enemy.className = "enemy";
+    enemy.src = 'ezgif.com-crop.gif';
+    enemy.style.width = "50px";
+    enemy.style.height = "50px";
+    enemy.style.position = "absolute";
+    enemy.style.left = Math.random() * maxX + "px";
+    enemy.style.top = Math.random() * maxY + "px";
+    enemy.velocityX = (Math.random() - 0.5) * maxSpeed;
+    enemy.velocityY = (Math.random() - 0.5) * maxSpeed;
+    document.body.appendChild(enemy);
+    enemies.push(enemy);
+  }
+
+  function repelFromScreenBoundaries() {
+    enemies.forEach(enemy => {
+      const x = enemy.offsetLeft;
+      const y = enemy.offsetTop;
+      const vx = enemy.velocityX;
+      const vy = enemy.velocityY;
+      const radius = 25;
+
+      if (x - radius <= 0 || x + radius >= maxX) {
+        enemy.velocityX = -vx;
+      }
+
+      if (y - radius <= 0 || y + radius >= maxY) {
+        enemy.velocityY = -vy;
+      }
+    });
+  }
+
+  function repelEnemies() {
+    enemies.forEach((enemy, i) => {
+      for (let j = 0; j < numEnemies; j++) {
+        if (i !== j) {
+          const dx = enemy.offsetLeft - enemies[j].offsetLeft;
+          const dy = enemy.offsetTop - enemies[j].offsetTop;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+
+          if (distance < repelDistance) {
+            const repelForce = repelDistance / distance;
+
+            const vx = dx / distance * repelForce;
+            const vy = dy / distance * repelForce;
+
+            enemy.velocityX += vx;
+            enemy.velocityY += vy;
+          }
+        }
+      }
+    });
+  }
+
+  function attackMouse(e) {
+    if (!gameStarted) return;
+    const mouseX = cursor.offsetLeft + cursor.clientWidth / 2;
+    const mouseY = cursor.offsetTop + cursor.clientHeight / 2;
+
+    enemies.forEach(enemy => {
+      const enemyX = enemy.offsetLeft + enemy.clientWidth / 2;
+      const enemyY = enemy.offsetTop + enemy.clientHeight / 2;
+
+      const dx = mouseX - enemyX;
+      const dy = mouseY - enemyY;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+
+      if (distance < followDistance) {
+        const speed = maxSpeed * aggressionFactor;
+        const vx = dx / distance * speed;
+        const vy = dy / distance * speed;
+
+        enemy.velocityX = vx;
+        enemy.velocityY = vy;
+
+        if (distance < 20) {
+          gameOver();
+        }
+      }
+    });
+  }
+
+  function moveEnemies() {
+    enemies.forEach(enemy => {
+      enemy.style.left = (enemy.offsetLeft + enemy.velocityX + maxX) % maxX + "px";
+      enemy.style.top = (enemy.offsetTop + enemy.velocityY + maxY) % maxY + "px";
+    });
+  }
+
+
+  const cursor = document.querySelector('.cursor');
+  document.addEventListener('mousemove', e => {
+    cursor.setAttribute("style", "top: " + (e.pageY - 10) + "px; left: " + (e.pageX - 10) + "px;");
+  });
+
+  function createFlower() {
+    if (!gameStarted) return;
+    
+    const flower = document.createElement("img");
+    flower.className = "flower";
+    flower.src = 'flower2.gif'; 
+    flower.style.width = "50px";
+    flower.style.height = "50px";
+    flower.style.position = "absolute";
+    flower.style.left = Math.random() * (maxX - 30) + "px";
+    flower.style.top = Math.random() * (maxY - 30) + "px";
+    document.querySelector('.flowers-container').appendChild(flower);
+  }
+
+  function checkCollisions() {
+    const cursorX = cursor.offsetLeft + cursor.clientWidth / 2;
+    const cursorY = cursor.offsetTop + cursor.clientHeight / 2;
+    const flowers = document.querySelectorAll('.flower');
+
+    flowers.forEach(flower => {
+      const flowerX = flower.offsetLeft + flower.clientWidth / 2;
+      const flowerY = flower.offsetTop + flower.clientHeight / 2;
+      const dx = cursorX - flowerX;
+      const dy = cursorY - flowerY;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+
+      if (distance < 20) {
+        flower.style.display = 'none';
+        score++;
+        hitSound.play();
+        updateScore();
+      }
+    });
+  }
+
+  function gameOver() {
+    bgMusic.pause();
+    gameOverSound.play();
+    alert('Game Over! Your Score: ' + score);
+    gameStarted = false;
+    startGameOverlay.style.display = 'block';
+    score = 0;
+    updateScore();
+    clearEnemies();
+    window.location.reload();
+  }
+
+  function updateScore() {
+    document.getElementById('score').textContent = `Score: ${score}`;
+    createEnimes();
+  }
+
+  function clearEnemies() {
+    enemies.forEach(enemy => {
+      enemy.remove();
+    });
+    enemies.length = 0;
+  }
+
+
+  setInterval(createFlower, 3000);
+
+  setInterval(() => {
+    repelFromScreenBoundaries();
+    repelEnemies();
+    moveEnemies();
+    checkCollisions();
+  }, 50);
+
+  document.onmousemove = attackMouse;
+
+
+//   music
+let gameOverSound = new Audio();
+let hitSound = new Audio();
+gameOverSound.src = './sound/player-loosing.wav';
+hitSound.src = './sound/hit.wav';
+
+</script>
+<p id="score">Score: 0</p>
+</body>
+</html>
