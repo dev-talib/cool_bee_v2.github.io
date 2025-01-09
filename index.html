@@ -1,227 +1,258 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<link rel ="stylesheet" href="style.css" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Flower Frenzy: Bee's Escape</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
-<div id="startGameOverlay">
-  <h1>Welcome to the Cool Bee</h1>
-  <button id="startGameButton">Start Game</button>
-</div>
-<audio id="bgMusic" src="./sound/bg_score.mp3" autoplay loop></audio>
+  <div id="startGameOverlay">
+    <h1>Welcome to Flower Frenzy: Bee's Got a Bloom to Catch!</h1>
+    <button id="startGameButton">Start Game</button>
+  </div>
 
-<div class="cursor">
-  <img src="images/bee.gif" id="img" />
-</div>
-<div class="flowers-container"></div>
+  <audio id="bgMusic" src="./sound/bg_score.mp3" autoplay loop></audio>
+  <audio id="hitSound" src="./sound/hit.wav"></audio>
+  <audio id="gameOverSound" src="./sound/player-loosing.wav"></audio>
 
-<script>
-  const numEnemies = 4;
-  const enemies = [];
-  const repelDistance = 100;
-  const followDistance = 150;
-  const maxX = window.innerWidth;
-  const maxY = window.innerHeight;
-  const maxSpeed = 3;
-  const aggressionFactor = 2;
-  let score = 0;
-  let gameStarted = false;
+  <div class="cursor">
+    <img src="images/bee.gif" id="img" />
+  </div>
 
-  const bgMusic = document.getElementById('bgMusic');
-  
-  
-  const startGameOverlay = document.getElementById('startGameOverlay');
-  const startGameButton = document.getElementById('startGameButton');
+  <div class="flowers-container"></div>
+  <p id="score">Score: 0</p>
 
-  startGameButton.addEventListener('click', () => {
-    startGameOverlay.style.display = 'none';
-    startGame();
-    bgMusic.play();
-  });
+  <script>
+    // Game Constants
+    const NUM_ENEMIES = 4;
+    const REPEL_DISTANCE = 100;
+    const FOLLOW_DISTANCE = 150;
+    const MAX_SPEED = 3;
+    const AGGRESSION_FACTOR = 2;
 
-  function startGame() {
-    gameStarted = true;
-    for (let i = 0; i < numEnemies; i++) {
-      createEnimes();
+    let score = 0;
+    let gameStarted = false;
+    let enemies = [];
+    const maxX = window.innerWidth;
+    const maxY = window.innerHeight;
+
+    // DOM Elements
+    const startGameOverlay = document.getElementById('startGameOverlay');
+    const startGameButton = document.getElementById('startGameButton');
+    const cursor = document.querySelector('.cursor');
+    const bgMusic = document.getElementById('bgMusic');
+    const hitSound = document.getElementById('hitSound');
+    const gameOverSound = document.getElementById('gameOverSound');
+    const scoreElement = document.getElementById('score');
+
+    // Event Listeners
+    startGameButton.addEventListener('click', startGame);
+    document.addEventListener('mousemove', updateCursor);
+    document.addEventListener('mousemove', attackMouse);
+
+    // Game Initialization
+    function startGame() {
+      gameStarted = true;
+      startGameOverlay.style.display = 'none';
+      bgMusic.play();
+      createEnemies();
+      setInterval(createFlower, 3000);
+      setInterval(gameLoop, 50);
     }
-  }
 
-  function createEnimes() {
-    const enemy = document.createElement("img");
-    enemy.className = "enemy";
-    enemy.src = './images/enemy.gif';
-    enemy.style.width = "50px";
-    enemy.style.height = "50px";
-    enemy.style.position = "absolute";
-    enemy.style.left = Math.random() * maxX + "px";
-    enemy.style.top = Math.random() * maxY + "px";
-    enemy.velocityX = (Math.random() - 0.5) * maxSpeed;
-    enemy.velocityY = (Math.random() - 0.5) * maxSpeed;
-    document.body.appendChild(enemy);
-    enemies.push(enemy);
-  }
-
-  function repelFromScreenBoundaries() {
-    enemies.forEach(enemy => {
-      const x = enemy.offsetLeft;
-      const y = enemy.offsetTop;
-      const vx = enemy.velocityX;
-      const vy = enemy.velocityY;
-      const radius = 25;
-
-      if (x - radius <= 0 || x + radius >= maxX) {
-        enemy.velocityX = -vx;
+    function createEnemies() {
+      for (let i = 0; i < NUM_ENEMIES; i++) {
+        const enemy = document.createElement('img');
+        enemy.className = 'enemy';
+        enemy.src = './images/enemy.gif';
+        enemy.style.width = '50px';
+        enemy.style.height = '50px';
+        enemy.style.position = 'absolute';
+        enemy.style.left = `${Math.random() * maxX}px`;
+        enemy.style.top = `${Math.random() * maxY}px`;
+        enemy.velocityX = (Math.random() - 0.5) * MAX_SPEED;
+        enemy.velocityY = (Math.random() - 0.5) * MAX_SPEED;
+        document.body.appendChild(enemy);
+        enemies.push(enemy);
       }
+    }
 
-      if (y - radius <= 0 || y + radius >= maxY) {
-        enemy.velocityY = -vy;
-      }
-    });
-  }
+     // Create a new enemy
+     function createEnemy() {
+      const enemy = document.createElement('img');
+      enemy.className = 'enemy';
+      enemy.src = './images/enemy.gif';
+      enemy.style.width = '50px';
+      enemy.style.height = '50px';
+      enemy.style.position = 'absolute';
+      enemy.style.left = `${Math.random() * maxX}px`;
+      enemy.style.top = `${Math.random() * maxY}px`;
+      enemy.velocityX = (Math.random() - 0.5) * MAX_SPEED;
+      enemy.velocityY = (Math.random() - 0.5) * MAX_SPEED;
+      document.body.appendChild(enemy);
+      enemies.push(enemy);
+    }
 
-  function repelEnemies() {
-    enemies.forEach((enemy, i) => {
-      for (let j = 0; j < numEnemies; j++) {
-        if (i !== j) {
-          const dx = enemy.offsetLeft - enemies[j].offsetLeft;
-          const dy = enemy.offsetTop - enemies[j].offsetTop;
-          const distance = Math.sqrt(dx * dx + dy * dy);
+    // Game Loop
+    function gameLoop() {
+      repelFromScreenBoundaries();
+      repelEnemies();
+      moveEnemies();
+      checkCollisions();
+    }
 
-          if (distance < repelDistance) {
-            const repelForce = repelDistance / distance;
+    // Enemy Movement and Behavior
+    function moveEnemies() {
+      enemies.forEach(enemy => {
+        enemy.style.left = `${(enemy.offsetLeft + enemy.velocityX + maxX) % maxX}px`;
+        enemy.style.top = `${(enemy.offsetTop + enemy.velocityY + maxY) % maxY}px`;
+      });
+    }
 
-            const vx = dx / distance * repelForce;
-            const vy = dy / distance * repelForce;
+    function repelFromScreenBoundaries() {
+      enemies.forEach(enemy => {
+        const radius = 25;
+        if (enemy.offsetLeft - radius <= 0 || enemy.offsetLeft + radius >= maxX) {
+          enemy.velocityX = -enemy.velocityX;
+        }
+        if (enemy.offsetTop - radius <= 0 || enemy.offsetTop + radius >= maxY) {
+          enemy.velocityY = -enemy.velocityY;
+        }
+      });
+    }
 
-            enemy.velocityX += vx;
-            enemy.velocityY += vy;
+    function repelEnemies() {
+      enemies.forEach((enemy, i) => {
+        enemies.forEach((otherEnemy, j) => {
+          if (i !== j) {
+            const dx = enemy.offsetLeft - otherEnemy.offsetLeft;
+            const dy = enemy.offsetTop - otherEnemy.offsetTop;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            if (distance < REPEL_DISTANCE) {
+              const repelForce = REPEL_DISTANCE / distance;
+              enemy.velocityX += (dx / distance) * repelForce;
+              enemy.velocityY += (dy / distance) * repelForce;
+            }
+          }
+        });
+      });
+    }
+
+    function attackMouse(event) {
+      if (!gameStarted) return;
+
+      const mouseX = cursor.offsetLeft + cursor.clientWidth / 2;
+      const mouseY = cursor.offsetTop + cursor.clientHeight / 2;
+
+      enemies.forEach(enemy => {
+        const enemyX = enemy.offsetLeft + enemy.clientWidth / 2;
+        const enemyY = enemy.offsetTop + enemy.clientHeight / 2;
+        const dx = mouseX - enemyX;
+        const dy = mouseY - enemyY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (distance < FOLLOW_DISTANCE) {
+          const speed = MAX_SPEED * AGGRESSION_FACTOR;
+          enemy.velocityX = dx / distance * speed;
+          enemy.velocityY = dy / distance * speed;
+
+          if (distance < 20) {
+            gameOver();
           }
         }
-      }
-    });
-  }
+      });
+    }
 
-  function attackMouse(e) {
-    if (!gameStarted) return;
-    const mouseX = cursor.offsetLeft + cursor.clientWidth / 2;
-    const mouseY = cursor.offsetTop + cursor.clientHeight / 2;
+    // Flower Collection
+    function createFlower() {
+      if (!gameStarted) return;
 
-    enemies.forEach(enemy => {
-      const enemyX = enemy.offsetLeft + enemy.clientWidth / 2;
-      const enemyY = enemy.offsetTop + enemy.clientHeight / 2;
+      const flower = document.createElement('img');
+      flower.className = 'flower';
+      flower.src = 'images/flower.gif';
+      flower.style.width = '50px';
+      flower.style.height = '50px';
+      flower.style.position = 'absolute';
+      flower.style.left = `${Math.random() * (maxX - 30)}px`;
+      flower.style.top = `${Math.random() * (maxY - 30)}px`;
+      document.querySelector('.flowers-container').appendChild(flower);
+    }
 
-      const dx = mouseX - enemyX;
-      const dy = mouseY - enemyY;
-      const distance = Math.sqrt(dx * dx + dy * dy);
+    function checkCollisions() {
+      const cursorX = cursor.offsetLeft + cursor.clientWidth / 2;
+      const cursorY = cursor.offsetTop + cursor.clientHeight / 2;
+      const flowers = document.querySelectorAll('.flower');
 
-      if (distance < followDistance) {
-        const speed = maxSpeed * aggressionFactor;
-        const vx = dx / distance * speed;
-        const vy = dy / distance * speed;
-
-        enemy.velocityX = vx;
-        enemy.velocityY = vy;
+      // Check collisions with flowers 
+      flowers.forEach(flower => {
+        const flowerX = flower.offsetLeft + flower.clientWidth / 2;
+        const flowerY = flower.offsetTop + flower.clientHeight / 2;
+        const dx = cursorX - flowerX;
+        const dy = cursorY - flowerY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
 
         if (distance < 20) {
+          flower.style.display = 'none';
+          score++;
+          hitSound.play();
+          updateScore();
+        }
+      });
+
+      // Check collisions with enemies 
+      enemies.forEach(enemy => {
+        const enemyX = enemy.offsetLeft + enemy.clientWidth / 2;
+        const enemyY = enemy.offsetTop + enemy.clientHeight / 2;
+        const dx = cursorX - enemyX;
+        const dy = cursorY - enemyY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (distance < 20) {
+          // game over
           gameOver();
         }
+      });
+    }
+
+    function updateScore() {
+      scoreElement.textContent = `Score: ${score}`;
+      
+      if (score % 5 === 0 && score !== 0) {
+        createEnemy();
       }
-    });
-  }
+    }
 
-  function moveEnemies() {
-    enemies.forEach(enemy => {
-      enemy.style.left = (enemy.offsetLeft + enemy.velocityX + maxX) % maxX + "px";
-      enemy.style.top = (enemy.offsetTop + enemy.velocityY + maxY) % maxY + "px";
-    });
-  }
+    // Game Over Logic
+    function gameOver() {
+      bgMusic.pause();
+      gameOverSound.play();
+      alert(`Game Over! Your Score: ${score}`);
+      resetGame();
+    }
 
+    function resetGame() {
+      gameStarted = false;
+      startGameOverlay.style.display = 'block';
+      score = 0;
+      updateScore();
+      clearEnemies();
+      window.location.reload();
+    }
 
-  const cursor = document.querySelector('.cursor');
-  document.addEventListener('mousemove', e => {
-    cursor.setAttribute("style", "top: " + (e.pageY - 10) + "px; left: " + (e.pageX - 10) + "px;");
-  });
+    function clearEnemies() {
+      enemies.forEach(enemy => enemy.remove());
+      enemies = [];
+    }
 
-  function createFlower() {
-    if (!gameStarted) return;
-    
-    const flower = document.createElement("img");
-    flower.className = "flower";
-    flower.src = 'images/flower.gif'; 
-    flower.style.width = "50px";
-    flower.style.height = "50px";
-    flower.style.position = "absolute";
-    flower.style.left = Math.random() * (maxX - 30) + "px";
-    flower.style.top = Math.random() * (maxY - 30) + "px";
-    document.querySelector('.flowers-container').appendChild(flower);
-  }
+    // Cursor Positioning
+    function updateCursor(event) {
+      cursor.style.top = `${event.pageY - 10}px`;
+      cursor.style.left = `${event.pageX - 10}px`;
+    }
 
-  function checkCollisions() {
-    const cursorX = cursor.offsetLeft + cursor.clientWidth / 2;
-    const cursorY = cursor.offsetTop + cursor.clientHeight / 2;
-    const flowers = document.querySelectorAll('.flower');
+  </script>
 
-    flowers.forEach(flower => {
-      const flowerX = flower.offsetLeft + flower.clientWidth / 2;
-      const flowerY = flower.offsetTop + flower.clientHeight / 2;
-      const dx = cursorX - flowerX;
-      const dy = cursorY - flowerY;
-      const distance = Math.sqrt(dx * dx + dy * dy);
-
-      if (distance < 20) {
-        flower.style.display = 'none';
-        score++;
-        hitSound.play();
-        updateScore();
-      }
-    });
-  }
-
-  function gameOver() {
-    bgMusic.pause();
-    gameOverSound.play();
-    alert('Game Over! Your Score: ' + score);
-    gameStarted = false;
-    startGameOverlay.style.display = 'block';
-    score = 0;
-    updateScore();
-    clearEnemies();
-    window.location.reload();
-  }
-
-  function updateScore() {
-    document.getElementById('score').textContent = `Score: ${score}`;
-    createEnimes();
-  }
-
-  function clearEnemies() {
-    enemies.forEach(enemy => {
-      enemy.remove();
-    });
-    enemies.length = 0;
-  }
-
-
-  setInterval(createFlower, 3000);
-
-  setInterval(() => {
-    repelFromScreenBoundaries();
-    repelEnemies();
-    moveEnemies();
-    checkCollisions();
-  }, 50);
-
-  document.onmousemove = attackMouse;
-
-
-//   music
-let gameOverSound = new Audio();
-let hitSound = new Audio();
-gameOverSound.src = './sound/player-loosing.wav';
-hitSound.src = './sound/hit.wav';
-
-</script>
-<p id="score">Score: 0</p>
 </body>
 </html>
