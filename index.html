@@ -1,108 +1,39 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bee Escape Game</title>
-  <style>
-    body {
-      margin: 0;
-      overflow: hidden;
-      background-image: url(images/bg.avif);
-      background-repeat: no-repeat;
-      background-size: cover;
-    }
-    .enemy {
-      width: 50px;
-      height: 50px;
-      position: absolute;
-      pointer-events: none;
-    }
-    .cursor {
-      width: 20px;
-      height: 20px;
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%);
-      border-radius: 50%;
-      background: transparent;
-      pointer-events: none;
-      z-index: 111;
-      transition: transform 0.1s ease-out; /* Add smooth transition */
-    }
-    .cursor img {
-      height: 50px;
-    }
-    .item {
-      width: 50px;
-      height: 50px;
-      position: absolute;
-      pointer-events: none;
-    }
-    #startGameOverlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.7);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      flex-direction: column;
-      z-index: 999;
-    }
-    #startGameButton {
-      background: #3498db;
-      color: #fff;
-      padding: 10px 20px;
-      border: none;
-      cursor: pointer;
-    }
-  </style>
+<link rel ="stylesheet" href="style.css" />
 </head>
 <body>
 
 <div id="startGameOverlay">
-  <h1>Welcome to the Bee Escape Game</h1>
+  <h1>Welcome to the Cool Bee</h1>
   <button id="startGameButton">Start Game</button>
 </div>
 <audio id="bgMusic" src="./sound/bg_score.mp3" autoplay loop></audio>
 
 <div class="cursor">
-  <img src="/images/bee.gif" id="img" />
+  <img src="images/bee.gif" id="img" />
 </div>
-<div class="item-container"></div>
-<p id="score">Score: 0</p>
+<div class="flowers-container"></div>
 
 <script>
   const numEnemies = 4;
   const enemies = [];
+  const repelDistance = 100;
+  const followDistance = 150;
   const maxX = window.innerWidth;
   const maxY = window.innerHeight;
   const maxSpeed = 3;
   const aggressionFactor = 2;
-  const avoidDistance = 100;
-  const trackDistance = 150;
-  const avoidForce = 2;
   let score = 0;
   let gameStarted = false;
 
   const bgMusic = document.getElementById('bgMusic');
+  
+  
   const startGameOverlay = document.getElementById('startGameOverlay');
   const startGameButton = document.getElementById('startGameButton');
-  const cursor = document.querySelector('.cursor');
-  const scoreDisplay = document.getElementById('score');
-  const itemContainer = document.querySelector('.item-container');
 
-  const hitSound = new Audio('./sound/hit.wav');
-  const gameOverSound = new Audio('./sound/player-loosing.wav');
-
-  // Cache initial values
-  let lastTimestamp = 0;
-
-  // Game Initialization
   startGameButton.addEventListener('click', () => {
     startGameOverlay.style.display = 'none';
     startGame();
@@ -112,94 +43,69 @@
   function startGame() {
     gameStarted = true;
     for (let i = 0; i < numEnemies; i++) {
-      createEnemy();
+      createEnimes();
     }
-    setInterval(createItem, 3000);
-    requestAnimationFrame(gameLoop);
   }
 
-  function createEnemy() {
-    const enemy = document.createElement('img');
-    enemy.classList.add('enemy');
-    enemy.src = 'images/enemy.gif';
-    enemy.style.left = `${Math.random() * maxX}px`;
-    enemy.style.top = `${Math.random() * maxY}px`;
+  function createEnimes() {
+    const enemy = document.createElement("img");
+    enemy.className = "enemy";
+    enemy.src = './images/enemy.gif';
+    enemy.style.width = "50px";
+    enemy.style.height = "50px";
+    enemy.style.position = "absolute";
+    enemy.style.left = Math.random() * maxX + "px";
+    enemy.style.top = Math.random() * maxY + "px";
     enemy.velocityX = (Math.random() - 0.5) * maxSpeed;
     enemy.velocityY = (Math.random() - 0.5) * maxSpeed;
     document.body.appendChild(enemy);
     enemies.push(enemy);
   }
 
-  function createItem() {
-    if (!gameStarted) return;
-    const item = document.createElement('img');
-    item.classList.add('item');
-    item.src = 'images/flower.gif';
-    item.style.left = `${Math.random() * (maxX - 30)}px`;
-    item.style.top = `${Math.random() * (maxY - 30)}px`;
-    itemContainer.appendChild(item);
-  }
-
-  function moveEnemies() {
+  function repelFromScreenBoundaries() {
     enemies.forEach(enemy => {
-      enemy.style.left = (parseFloat(enemy.style.left) + enemy.velocityX + maxX) % maxX + 'px';
-      enemy.style.top = (parseFloat(enemy.style.top) + enemy.velocityY + maxY) % maxY + 'px';
-    });
-  }
+      const x = enemy.offsetLeft;
+      const y = enemy.offsetTop;
+      const vx = enemy.velocityX;
+      const vy = enemy.velocityY;
+      const radius = 25;
 
-  function checkCollisions() {
-    const cursorX = cursor.offsetLeft + cursor.clientWidth / 2;
-    const cursorY = cursor.offsetTop + cursor.clientHeight / 2;
-    const items = document.querySelectorAll('.item');
+      if (x - radius <= 0 || x + radius >= maxX) {
+        enemy.velocityX = -vx;
+      }
 
-    items.forEach(item => {
-      const itemX = item.offsetLeft + item.clientWidth / 2;
-      const itemY = item.offsetTop + item.clientHeight / 2;
-      const distance = Math.sqrt(Math.pow(cursorX - itemX, 2) + Math.pow(cursorY - itemY, 2));
-
-      if (distance < 20) {
-        item.remove();
-        score++;
-        hitSound.play();
-        updateScore();
+      if (y - radius <= 0 || y + radius >= maxY) {
+        enemy.velocityY = -vy;
       }
     });
   }
 
-  function avoidCollision() {
+  function repelEnemies() {
     enemies.forEach((enemy, i) => {
-      for (let j = 0; j < enemies.length; j++) {
+      for (let j = 0; j < numEnemies; j++) {
         if (i !== j) {
           const dx = enemy.offsetLeft - enemies[j].offsetLeft;
           const dy = enemy.offsetTop - enemies[j].offsetTop;
           const distance = Math.sqrt(dx * dx + dy * dy);
 
-          if (distance < avoidDistance) {
-            const avoidX = dx / distance * avoidForce;
-            const avoidY = dy / distance * avoidForce;
-            enemy.velocityX += avoidX;
-            enemy.velocityY += avoidY;
+          if (distance < repelDistance) {
+            const repelForce = repelDistance / distance;
+
+            const vx = dx / distance * repelForce;
+            const vy = dy / distance * repelForce;
+
+            enemy.velocityX += vx;
+            enemy.velocityY += vy;
           }
         }
       }
     });
   }
 
-  function trackBeeMovement(e) {
+  function attackMouse(e) {
     if (!gameStarted) return;
-    const mouseX = e.pageX;
-    const mouseY = e.pageY;
-
-    // Smoothly move the bee towards the mouse
-    const beeX = cursor.offsetLeft + cursor.clientWidth / 2;
-    const beeY = cursor.offsetTop + cursor.clientHeight / 2;
-    const dx = mouseX - beeX;
-    const dy = mouseY - beeY;
-
-    // Apply smoothing with a small step
-    const step = 0.1; // Adjust this to control the smoothness of the movement
-    cursor.style.left = beeX + dx * step + 'px';
-    cursor.style.top = beeY + dy * step + 'px';
+    const mouseX = cursor.offsetLeft + cursor.clientWidth / 2;
+    const mouseY = cursor.offsetTop + cursor.clientHeight / 2;
 
     enemies.forEach(enemy => {
       const enemyX = enemy.offsetLeft + enemy.clientWidth / 2;
@@ -209,14 +115,65 @@
       const dy = mouseY - enemyY;
       const distance = Math.sqrt(dx * dx + dy * dy);
 
-      if (distance < trackDistance) {
+      if (distance < followDistance) {
         const speed = maxSpeed * aggressionFactor;
-        enemy.velocityX = (dx / distance) * speed;
-        enemy.velocityY = (dy / distance) * speed;
+        const vx = dx / distance * speed;
+        const vy = dy / distance * speed;
+
+        enemy.velocityX = vx;
+        enemy.velocityY = vy;
 
         if (distance < 20) {
           gameOver();
         }
+      }
+    });
+  }
+
+  function moveEnemies() {
+    enemies.forEach(enemy => {
+      enemy.style.left = (enemy.offsetLeft + enemy.velocityX + maxX) % maxX + "px";
+      enemy.style.top = (enemy.offsetTop + enemy.velocityY + maxY) % maxY + "px";
+    });
+  }
+
+
+  const cursor = document.querySelector('.cursor');
+  document.addEventListener('mousemove', e => {
+    cursor.setAttribute("style", "top: " + (e.pageY - 10) + "px; left: " + (e.pageX - 10) + "px;");
+  });
+
+  function createFlower() {
+    if (!gameStarted) return;
+    
+    const flower = document.createElement("img");
+    flower.className = "flower";
+    flower.src = 'images/flower.gif'; 
+    flower.style.width = "50px";
+    flower.style.height = "50px";
+    flower.style.position = "absolute";
+    flower.style.left = Math.random() * (maxX - 30) + "px";
+    flower.style.top = Math.random() * (maxY - 30) + "px";
+    document.querySelector('.flowers-container').appendChild(flower);
+  }
+
+  function checkCollisions() {
+    const cursorX = cursor.offsetLeft + cursor.clientWidth / 2;
+    const cursorY = cursor.offsetTop + cursor.clientHeight / 2;
+    const flowers = document.querySelectorAll('.flower');
+
+    flowers.forEach(flower => {
+      const flowerX = flower.offsetLeft + flower.clientWidth / 2;
+      const flowerY = flower.offsetTop + flower.clientHeight / 2;
+      const dx = cursorX - flowerX;
+      const dy = cursorY - flowerY;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+
+      if (distance < 20) {
+        flower.style.display = 'none';
+        score++;
+        hitSound.play();
+        updateScore();
       }
     });
   }
@@ -230,10 +187,12 @@
     score = 0;
     updateScore();
     clearEnemies();
+    window.location.reload();
   }
 
   function updateScore() {
-    scoreDisplay.textContent = `Score: ${score}`;
+    document.getElementById('score').textContent = `Score: ${score}`;
+    createEnimes();
   }
 
   function clearEnemies() {
@@ -243,28 +202,26 @@
     enemies.length = 0;
   }
 
-  function gameLoop(timestamp) {
-    if (!gameStarted) return;
 
-    // Throttle the game loop
-    if (timestamp - lastTimestamp < 1000 / 60) { // 60 FPS
-      requestAnimationFrame(gameLoop);
-      return;
-    }
+  setInterval(createFlower, 3000);
 
-    lastTimestamp = timestamp;
-
+  setInterval(() => {
+    repelFromScreenBoundaries();
+    repelEnemies();
     moveEnemies();
-    avoidCollision();
     checkCollisions();
+  }, 50);
 
-    requestAnimationFrame(gameLoop);
-  }
+  document.onmousemove = attackMouse;
 
-  document.addEventListener('mousemove', e => {
-    trackBeeMovement(e);
-  });
+
+//   music
+let gameOverSound = new Audio();
+let hitSound = new Audio();
+gameOverSound.src = './sound/player-loosing.wav';
+hitSound.src = './sound/hit.wav';
+
 </script>
-
+<p id="score">Score: 0</p>
 </body>
 </html>
