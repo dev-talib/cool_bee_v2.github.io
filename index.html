@@ -250,6 +250,17 @@
     function updateCursor(event) {
       cursor.style.top = `${event.pageY - 10}px`;
       cursor.style.left = `${event.pageX - 10}px`;
+
+      let pos = parseInt(window.getComputedStyle(cursor).getPropertyValue('left'));
+      if(pos< event.pageX){
+          changeImage('images/bee_right.gif');
+      }else{
+          changeImage('images/bee_left.gif');
+      }
+    }
+
+    function changeImage(a) {
+        document.getElementById("img").src=a;
     }
 
   </script>
